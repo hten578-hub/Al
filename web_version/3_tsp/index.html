@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP - Simulated Annealing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .canvas-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            background: white;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .control-group h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        input[type="range"] {
+            padding: 0;
+        }
+
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-label {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        @media (max-width: 968px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Bài toán Người du lịch (TSP)</h1>
+        <p class="subtitle">Simulated Annealing Algorithm</p>
+
+        <div class="content">
+            <div class="canvas-container">
+                <canvas id="canvas" width="500" height="500"></canvas>
+                <p style="margin-top: 10px; color: #666;">Click để thêm thành phố</p>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <h3>⚙️ Tham số thuật toán</h3>
+                    <div class="input-group">
+                        <label>Nhiệt độ ban đầu: <span class="range-value" id="tempValue">1000</span></label>
+                        <input type="range" id="initialTemp" min="100" max="2000" value="1000" step="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Tỷ lệ làm lạnh: <span class="range-value" id="coolingValue">0.995</span></label>
+                        <input type="range" id="coolingRate" min="0.90" max="0.999" value="0.995" step="0.001">
+                    </div>
+                    <div class="input-group">
+                        <label>Nhiệt độ tối thiểu: <span class="range-value" id="minTempValue">1</span></label>
+                        <input type="range" id="minTemp" min="0.1" max="10" value="1" step="0.1">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>🎮 Điều khiển</h3>
+                    <button class="btn-success" onclick="generateRandomCities()">🎲 Tạo thành phố ngẫu nhiên</button>
+                    <button class="btn-primary" onclick="startOptimization()">▶️ Bắt đầu tối ưu</button>
+                    <button class="btn-secondary" onclick="clearCanvas()">🗑️ Xóa tất cả</button>
+                </div>
+
+                <div class="stats">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">📊 Thống kê</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Số thành phố:</span>
+                        <span class="stat-value" id="cityCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Khoảng cách hiện tại:</span>
+                        <span class="stat-value" id="currentDistance">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Khoảng cách tốt nhất:</span>
+                        <span class="stat-value" id="bestDistance">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Số lần lặp:</span>
+                        <span class="stat-value" id="iterations">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Nhiệt độ:</span>
+                        <span class="stat-value" id="temperature">-</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress" style="width: 0%">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let cities = [];
+        let currentTour = [];
+        let bestTour = [];
+        let bestDistance = Infinity;
+        let isOptimizing = false;
+
+        // Update range values
+        document.getElementById('initialTemp').addEventListener('input', (e) => {
+            document.getElementById('tempValue').textContent = e.target.value;
+        });
+        document.getElementById('coolingRate').addEventListener('input', (e) => {
+            document.getElementById('coolingValue').textContent = e.target.value;
+        });
+        document.getElementById('minTemp').addEventListener('input', (e) => {
+            document.getElementById('minTempValue').textContent = e.target.value;
+        });
+
+        // Add city on click
+        canvas.addEventListener('click', (e) => {
+            if (isOptimizing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            cities.push({x, y});
+            updateCityCount();
+            draw();
+        });
+
+        function updateCityCount() {
+            document.getElementById('cityCount').textContent = cities.length;
+        }
+
+        function generateRandomCities() {
+            if (isOptimizing) return;
+            cities = [];
+            const numCities = 10;
+            const margin = 50;
+            for (let i = 0; i < numCities; i++) {
+                cities.push({
+                    x: margin + Math.random() * (canvas.width - 2 * margin),
+                    y: margin + Math.random() * (canvas.height - 2 * margin)
+                });
+            }
+            updateCityCount();
+            draw();
+        }
+
+        function clearCanvas() {
+            if (isOptimizing) return;
+            cities = [];
+            currentTour = [];
+            bestTour = [];
+            bestDistance = Infinity;
+            updateCityCount();
+            document.getElementById('currentDistance').textContent = '-';
+            document.getElementById('bestDistance').textContent = '-';
+            document.getElementById('iterations').textContent = '0';
+            document.getElementById('temperature').textContent = '-';
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('progress').textContent = '0%';
+            draw();
+        }
+
+        function distance(city1, city2) {
+            const dx = city1.x - city2.x;
+            const dy = city1.y - city2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function calculateTotalDistance(tour) {
+            let total = 0;
+            for (let i = 0; i < tour.length; i++) {
+                const current = cities[tour[i]];
+                const next = cities[tour[(i + 1) % tour.length]];
+                total += distance(current, next);
+            }
+            return total;
+        }
+
+        function getNeighbor(tour) {
+            const newTour = [...tour];
+            
+            // Sử dụng 2-opt swap thay vì random swap để tối ưu hơn
+            let i = Math.floor(Math.random() * tour.length);
+            let j = Math.floor(Math.random() * tour.length);
+            
+            // Đảm bảo i < j
+            if (i > j) [i, j] = [j, i];
+            if (i === j) return newTour;
+            
+            // Reverse đoạn từ i đến j (2-opt)
+            while (i < j) {
+                [newTour[i], newTour[j]] = [newTour[j], newTour[i]];
+                i++;
+                j--;
+            }
+            
+            return newTour;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw tour
+            if (bestTour.length > 0) {
+                ctx.strokeStyle = '#667eea';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < bestTour.length; i++) {
+                    const city = cities[bestTour[i]];
+                    if (i === 0) {
+                        ctx.moveTo(city.x, city.y);
+                    } else {
+                        ctx.lineTo(city.x, city.y);
+                    }
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            // Draw cities
+            cities.forEach((city, index) => {
+                ctx.fillStyle = '#764ba2';
+                ctx.beginPath();
+                ctx.arc(city.x, city.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(index, city.x, city.y);
+            });
+        }
+
+        async function startOptimization() {
+            if (cities.length < 3) {
+                alert('Cần ít nhất 3 thành phố!');
+                return;
+            }
+            if (isOptimizing) return;
+
+            isOptimizing = true;
+            const initialTemp = parseFloat(document.getElementById('initialTemp').value);
+            const coolingRate = parseFloat(document.getElementById('coolingRate').value);
+            const minTemp = parseFloat(document.getElementById('minTemp').value);
+
+            // Chạy nhiều lần và lấy kết quả tốt nhất
+            let globalBestTour = null;
+            let globalBestDistance = Infinity;
+            const numRuns = 3; // Chạy 3 lần
+
+            for (let run = 0; run < numRuns; run++) {
+                // Initialize random tour
+                currentTour = Array.from({length: cities.length}, (_, i) => i);
+                for (let i = currentTour.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [currentTour[i], currentTour[j]] = [currentTour[j], currentTour[i]];
+                }
+
+                let currentDistance = calculateTotalDistance(currentTour);
+                bestTour = [...currentTour];
+                bestDistance = currentDistance;
+
+                let temperature = initialTemp;
+                let iterations = 0;
+
+                while (temperature > minTemp && isOptimizing) {
+                    const newTour = getNeighbor(currentTour);
+                    const newDistance = calculateTotalDistance(newTour);
+                    const delta = newDistance - currentDistance;
+
+                    if (delta < 0 || Math.random() < Math.exp(-delta / temperature)) {
+                        currentTour = newTour;
+                        currentDistance = newDistance;
+
+                        if (currentDistance < bestDistance) {
+                            bestTour = [...currentTour];
+                            bestDistance = currentDistance;
+                        }
+                    }
+
+                    temperature *= coolingRate;
+                    iterations++;
+
+                    if (iterations % 100 === 0) {
+                        document.getElementById('currentDistance').textContent = currentDistance.toFixed(2);
+                        document.getElementById('bestDistance').textContent = bestDistance.toFixed(2);
+                        document.getElementById('iterations').textContent = iterations;
+                        document.getElementById('temperature').textContent = temperature.toFixed(2);
+                        
+                        const progress = Math.min(100, ((run * 100 / numRuns) + ((initialTemp - temperature) / (initialTemp - minTemp)) * (100 / numRuns)));
+                        document.getElementById('progress').style.width = progress + '%';
+                        document.getElementById('progress').textContent = progress.toFixed(0) + '%';
+                        
+                        draw();
+                        await new Promise(resolve => setTimeout(resolve, 1));
+                    }
+                }
+
+                if (bestDistance < globalBestDistance) {
+                    globalBestDistance = bestDistance;
+                    globalBestTour = [...bestTour];
+                }
+            }
+
+            bestTour = globalBestTour;
+            bestDistance = globalBestDistance;
+
+            document.getElementById('currentDistance').textContent = bestDistance.toFixed(2);
+            document.getElementById('bestDistance').textContent = bestDistance.toFixed(2);
+            document.getElementById('progress').style.width = '100%';
+            document.getElementById('progress').textContent = '100%';
+            draw();
+            isOptimizing = false;
+        }
+
+        // Initialize
+        draw();
+    </script>
+</body>
+</html>

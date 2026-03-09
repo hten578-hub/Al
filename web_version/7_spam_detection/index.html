@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam Detection - Naive Bayes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .section h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .result {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result-spam {
+            border-left: 5px solid #e74c3c;
+        }
+
+        .result-ham {
+            border-left: 5px solid #2ecc71;
+        }
+
+        .result-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-spam .result-header {
+            color: #e74c3c;
+        }
+
+        .result-ham .result-header {
+            color: #2ecc71;
+        }
+
+        .confidence {
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .examples {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .example-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .example-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .example-card.spam {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .example-card.ham {
+            border-left: 4px solid #2ecc71;
+        }
+
+        .example-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .example-text {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 25px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .examples {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 Phát hiện thư rác</h1>
+        <p class="subtitle">Naive Bayes Classification</p>
+
+        <div class="section">
+            <h3>✍️ Nhập email để kiểm tra</h3>
+            <textarea id="emailInput" placeholder="Nhập nội dung email..."></textarea>
+            <button class="btn-primary" onclick="classifyEmail()">🔍 Phân loại</button>
+        </div>
+
+        <div id="result" class="result"></div>
+
+        <div class="section">
+            <h3>📝 Ví dụ email</h3>
+            <p style="color: #666; margin-bottom: 15px;">Click vào ví dụ để thử:</p>
+            <div class="examples">
+                <div class="example-card spam" onclick="useExample(0)">
+                    <div class="example-label" style="color: #e74c3c;">🚫 SPAM</div>
+                    <div class="example-text">Congratulations! You won $1000000. Click here now!</div>
+                </div>
+                <div class="example-card ham" onclick="useExample(1)">
+                    <div class="example-label" style="color: #2ecc71;">✅ HAM</div>
+                    <div class="example-text">Meeting tomorrow at 3pm in conference room</div>
+                </div>
+                <div class="example-card spam" onclick="useExample(2)">
+                    <div class="example-label" style="color: #e74c3c;">🚫 SPAM</div>
+                    <div class="example-text">Free money! Act now! Limited time offer!</div>
+                </div>
+                <div class="example-card ham" onclick="useExample(3)">
+                    <div class="example-label" style="color: #2ecc71;">✅ HAM</div>
+                    <div class="example-text">Can you review this document please?</div>
+                </div>
+                <div class="example-card spam" onclick="useExample(4)">
+                    <div class="example-label" style="color: #e74c3c;">🚫 SPAM</div>
+                    <div class="example-text">Buy now! Best price guaranteed! Click here!</div>
+                </div>
+                <div class="example-card ham" onclick="useExample(5)">
+                    <div class="example-label" style="color: #2ecc71;">✅ HAM</div>
+                    <div class="example-text">Thanks for your help yesterday</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <h3 style="color: #667eea; margin-bottom: 15px;">📊 Thống kê mô hình</h3>
+            <div class="stat-item">
+                <span class="stat-label">Số email huấn luyện:</span>
+                <span class="stat-value" id="trainingCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Số từ vựng:</span>
+                <span class="stat-value" id="vocabSize">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Email spam:</span>
+                <span class="stat-value" id="spamCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Email ham:</span>
+                <span class="stat-value" id="hamCount">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const examples = [
+            "Congratulations! You won $1000000. Click here now!",
+            "Meeting tomorrow at 3pm in conference room",
+            "Free money! Act now! Limited time offer!",
+            "Can you review this document please?",
+            "Buy now! Best price guaranteed! Click here!",
+            "Thanks for your help yesterday"
+        ];
+
+        class NaiveBayesSpamFilter {
+            constructor() {
+                this.wordCountSpam = {};
+                this.wordCountHam = {};
+                this.spamCount = 0;
+                this.hamCount = 0;
+                this.vocabulary = new Set();
+            }
+
+            preprocess(text) {
+                return text.toLowerCase()
+                    .match(/\b\w+\b/g) || [];
+            }
+
+            train(messages) {
+                messages.forEach(({text, label}) => {
+                    const words = this.preprocess(text);
+                    words.forEach(word => this.vocabulary.add(word));
+
+                    if (label === 'spam') {
+                        this.spamCount++;
+                        words.forEach(word => {
+                            this.wordCountSpam[word] = (this.wordCountSpam[word] || 0) + 1;
+                        });
+                    } else {
+                        this.hamCount++;
+                        words.forEach(word => {
+                            this.wordCountHam[word] = (this.wordCountHam[word] || 0) + 1;
+                        });
+                    }
+                });
+            }
+
+            predict(text) {
+                const words = this.preprocess(text);
+                const totalMessages = this.spamCount + this.hamCount;
+                const pSpam = this.spamCount / totalMessages;
+                const pHam = this.hamCount / totalMessages;
+
+                const totalWordsSpam = Object.values(this.wordCountSpam).reduce((a, b) => a + b, 0);
+                const totalWordsHam = Object.values(this.wordCountHam).reduce((a, b) => a + b, 0);
+                const vocabSize = this.vocabulary.size;
+
+                let logProbSpam = Math.log(pSpam);
+                let logProbHam = Math.log(pHam);
+
+                words.forEach(word => {
+                    const probWordSpam = (this.wordCountSpam[word] || 0 + 1) / (totalWordsSpam + vocabSize);
+                    const probWordHam = (this.wordCountHam[word] || 0 + 1) / (totalWordsHam + vocabSize);
+
+                    logProbSpam += Math.log(probWordSpam);
+                    logProbHam += Math.log(probWordHam);
+                });
+
+                // Convert to probabilities
+                const maxLog = Math.max(logProbSpam, logProbHam);
+                let probSpam = Math.exp(logProbSpam - maxLog);
+                let probHam = Math.exp(logProbHam - maxLog);
+
+                const total = probSpam + probHam;
+                probSpam /= total;
+                probHam /= total;
+
+                return {
+                    prediction: probSpam > probHam ? 'spam' : 'ham',
+                    confidence: Math.max(probSpam, probHam)
+                };
+            }
+        }
+
+        // Training data
+        const trainingData = [
+            {text: "Congratulations! You won $1000000. Click here now!", label: "spam"},
+            {text: "Free money! Act now! Limited time offer!", label: "spam"},
+            {text: "Get rich quick! Buy now! Special discount!", label: "spam"},
+            {text: "Viagra cheap! Best price guaranteed! Order now!", label: "spam"},
+            {text: "You are a winner! Claim your prize immediately!", label: "spam"},
+            {text: "Urgent! Your account will be closed! Click here!", label: "spam"},
+            {text: "Make money fast! Work from home! Easy money!", label: "spam"},
+            {text: "Click here for free gift! Limited offer!", label: "spam"},
+            {text: "Win big! Casino bonus! Play now!", label: "spam"},
+            {text: "Lose weight fast! Buy our pills now!", label: "spam"},
+            {text: "Meeting tomorrow at 3pm in conference room", label: "ham"},
+            {text: "Can you review this document please?", label: "ham"},
+            {text: "Lunch at 12? Let me know if you can make it", label: "ham"},
+            {text: "Project deadline is next Friday, please prepare", label: "ham"},
+            {text: "Thanks for your help yesterday with the presentation", label: "ham"},
+            {text: "Please find attached the quarterly report", label: "ham"},
+            {text: "The system will be down for maintenance tonight", label: "ham"},
+            {text: "Happy birthday! Hope you have a great day", label: "ham"},
+            {text: "Reminder: Team meeting at 2pm today", label: "ham"},
+            {text: "Could you send me the updated schedule?", label: "ham"}
+        ];
+
+        // Initialize and train
+        const classifier = new NaiveBayesSpamFilter();
+        classifier.train(trainingData);
+
+        // Update stats
+        document.getElementById('trainingCount').textContent = trainingData.length;
+        document.getElementById('vocabSize').textContent = classifier.vocabulary.size;
+        document.getElementById('spamCount').textContent = classifier.spamCount;
+        document.getElementById('hamCount').textContent = classifier.hamCount;
+
+        function classifyEmail() {
+            const text = document.getElementById('emailInput').value.trim();
+            
+            if (!text) {
+                alert('Vui lòng nhập nội dung email!');
+                return;
+            }
+
+            const result = classifier.predict(text);
+            displayResult(result, text);
+        }
+
+        function displayResult(result, text) {
+            const resultDiv = document.getElementById('result');
+            const isSpam = result.prediction === 'spam';
+            
+            resultDiv.className = `result show ${isSpam ? 'result-spam' : 'result-ham'}`;
+            resultDiv.innerHTML = `
+                <div class="result-header">
+                    ${isSpam ? '🚫 SPAM' : '✅ HAM (Không phải spam)'}
+                </div>
+                <div class="confidence">
+                    Độ tin cậy: ${(result.confidence * 100).toFixed(1)}%
+                </div>
+                <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <strong>Email:</strong><br>
+                    "${text}"
+                </div>
+            `;
+        }
+
+        function useExample(index) {
+            document.getElementById('emailInput').value = examples[index];
+            classifyEmail();
+        }
+    </script>
+</body>
+</html>

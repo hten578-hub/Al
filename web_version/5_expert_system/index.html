@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ chuyên gia chẩn đoán bệnh</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #43e97b;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .symptoms-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .symptoms-section h3 {
+            color: #43e97b;
+            margin-bottom: 20px;
+        }
+
+        .symptoms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .symptom-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .symptom-item:hover {
+            border-color: #43e97b;
+            transform: translateY(-2px);
+        }
+
+        .symptom-item input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .symptom-item label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        button {
+            width: 48%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .results {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .diagnosis-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 5px solid #43e97b;
+        }
+
+        .diagnosis-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .confidence {
+            background: #43e97b;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .recommendation {
+            color: #666;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Hệ chuyên gia chẩn đoán bệnh</h1>
+        <p class="subtitle">Forward Chaining Expert System</p>
+
+        <div class="symptoms-section">
+            <h3>📋 Chọn các triệu chứng</h3>
+            <div class="symptoms-grid" id="symptomsGrid"></div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+            <button class="btn-primary" onclick="diagnose()">🔍 Chẩn đoán</button>
+            <button class="btn-secondary" onclick="reset()">🔄 Làm mới</button>
+        </div>
+
+        <div class="results" id="results">
+            <h3>📊 Kết quả chẩn đoán</h3>
+            <div id="diagnosisResults"></div>
+            <div class="warning">
+                <strong>⚠️ LƯU Ý:</strong> Đây chỉ là hệ thống tư vấn sơ bộ. Vui lòng tham khảo ý kiến bác sĩ!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const symptoms = [
+            'sốt', 'sốt_cao', 'ho', 'ho_kéo_dài', 'đau_họng',
+            'đau_đầu', 'đau_bụng', 'đau_ngực', 'buồn_nôn',
+            'tiêu_chảy', 'khó_thở', 'phát_ban', 'ngứa',
+            'chóng_mặt', 'mệt_mỏi'
+        ];
+
+        const rules = [
+            // Cảm cúm - nhiều tổ hợp
+            {conditions: ['sốt', 'ho', 'đau_họng'], conclusion: 'cảm_cúm', confidence: 0.8},
+            {conditions: ['sốt', 'đau_đầu', 'buồn_nôn'], conclusion: 'cảm_cúm', confidence: 0.7},
+            {conditions: ['sốt', 'ho'], conclusion: 'cảm_cúm', confidence: 0.6},
+            {conditions: ['sốt', 'đau_họng'], conclusion: 'cảm_cúm', confidence: 0.65},
+            {conditions: ['ho', 'đau_họng', 'mệt_mỏi'], conclusion: 'cảm_cúm', confidence: 0.55},
+            
+            // Ngộ độc thực phẩm
+            {conditions: ['sốt_cao', 'đau_bụng', 'tiêu_chảy'], conclusion: 'ngộ_độc_thực_phẩm', confidence: 0.85},
+            {conditions: ['đau_bụng', 'tiêu_chảy'], conclusion: 'ngộ_độc_thực_phẩm', confidence: 0.7},
+            {conditions: ['buồn_nôn', 'đau_bụng', 'tiêu_chảy'], conclusion: 'ngộ_độc_thực_phẩm', confidence: 0.75},
+            {conditions: ['sốt_cao', 'buồn_nôn', 'tiêu_chảy'], conclusion: 'ngộ_độc_thực_phẩm', confidence: 0.7},
+            
+            // Viêm phổi
+            {conditions: ['ho_kéo_dài', 'khó_thở', 'đau_ngực'], conclusion: 'viêm_phổi', confidence: 0.9},
+            {conditions: ['ho_kéo_dài', 'khó_thở'], conclusion: 'viêm_phổi', confidence: 0.75},
+            {conditions: ['sốt_cao', 'ho_kéo_dài', 'đau_ngực'], conclusion: 'viêm_phổi', confidence: 0.8},
+            {conditions: ['khó_thở', 'đau_ngực', 'sốt'], conclusion: 'viêm_phổi', confidence: 0.7},
+            
+            // Dị ứng
+            {conditions: ['sốt', 'phát_ban', 'ngứa'], conclusion: 'dị_ứng', confidence: 0.75},
+            {conditions: ['phát_ban', 'ngứa'], conclusion: 'dị_ứng', confidence: 0.8},
+            {conditions: ['ngứa', 'khó_thở'], conclusion: 'dị_ứng', confidence: 0.7},
+            {conditions: ['phát_ban'], conclusion: 'dị_ứng', confidence: 0.5},
+            
+            // Huyết áp thấp
+            {conditions: ['đau_đầu', 'chóng_mặt', 'mệt_mỏi'], conclusion: 'huyết_áp_thấp', confidence: 0.7},
+            {conditions: ['chóng_mặt', 'mệt_mỏi'], conclusion: 'huyết_áp_thấp', confidence: 0.6},
+            {conditions: ['đau_đầu', 'chóng_mặt'], conclusion: 'huyết_áp_thấp', confidence: 0.55},
+            
+            // Cảm lạnh thông thường
+            {conditions: ['ho', 'đau_họng'], conclusion: 'cảm_lạnh', confidence: 0.6},
+            {conditions: ['ho', 'mệt_mỏi'], conclusion: 'cảm_lạnh', confidence: 0.5},
+            
+            // Đau đầu/Migraine
+            {conditions: ['đau_đầu', 'buồn_nôn'], conclusion: 'đau_đầu_migraine', confidence: 0.65},
+            {conditions: ['đau_đầu', 'chóng_mặt', 'buồn_nôn'], conclusion: 'đau_đầu_migraine', confidence: 0.7},
+            
+            // Khuyến nghị
+            {conditions: ['cảm_cúm'], conclusion: 'nghỉ_ngơi_và_uống_nhiều_nước', confidence: 1.0},
+            {conditions: ['cảm_lạnh'], conclusion: 'nghỉ_ngơi_và_uống_nhiều_nước', confidence: 1.0},
+            {conditions: ['ngộ_độc_thực_phẩm'], conclusion: 'đến_bệnh_viện_ngay', confidence: 1.0},
+            {conditions: ['viêm_phổi'], conclusion: 'cần_khám_bác_sĩ_gấp', confidence: 1.0},
+            {conditions: ['dị_ứng'], conclusion: 'dùng_thuốc_kháng_histamine', confidence: 0.9},
+            {conditions: ['huyết_áp_thấp'], conclusion: 'tăng_cường_dinh_dưỡng', confidence: 0.8},
+            {conditions: ['đau_đầu_migraine'], conclusion: 'nghỉ_ngơi_trong_phòng_tối', confidence: 0.9}
+        ];
+
+        const diseaseNames = {
+            'cảm_cúm': 'Cảm cúm',
+            'cảm_lạnh': 'Cảm lạnh',
+            'ngộ_độc_thực_phẩm': 'Ngộ độc thực phẩm',
+            'viêm_phổi': 'Viêm phổi',
+            'dị_ứng': 'Dị ứng',
+            'huyết_áp_thấp': 'Huyết áp thấp',
+            'đau_đầu_migraine': 'Đau đầu Migraine',
+            'nghỉ_ngơi_và_uống_nhiều_nước': '💊 Nghỉ ngơi và uống nhiều nước',
+            'đến_bệnh_viện_ngay': '🚑 Đến bệnh viện ngay',
+            'cần_khám_bác_sĩ_gấp': '👨‍⚕️ Cần khám bác sĩ gấp',
+            'dùng_thuốc_kháng_histamine': '💊 Dùng thuốc kháng histamine',
+            'tăng_cường_dinh_dưỡng': '🥗 Tăng cường dinh dưỡng',
+            'nghỉ_ngơi_trong_phòng_tối': '🌙 Nghỉ ngơi trong phòng tối'
+        };
+
+        function initSymptoms() {
+            const grid = document.getElementById('symptomsGrid');
+            symptoms.forEach(symptom => {
+                const item = document.createElement('div');
+                item.className = 'symptom-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="${symptom}" value="${symptom}">
+                    <label for="${symptom}">${symptom.replace(/_/g, ' ')}</label>
+                `;
+                item.onclick = (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        const checkbox = item.querySelector('input');
+                        checkbox.checked = !checkbox.checked;
+                    }
+                };
+                grid.appendChild(item);
+            });
+        }
+
+        function forwardChaining(facts) {
+            const conclusions = {};
+            let changed = true;
+
+            while (changed) {
+                changed = false;
+                for (const rule of rules) {
+                    const allConditionsMet = rule.conditions.every(cond => facts.has(cond));
+                    if (allConditionsMet && !facts.has(rule.conclusion)) {
+                        facts.add(rule.conclusion);
+                        conclusions[rule.conclusion] = rule.confidence;
+                        changed = true;
+                    }
+                }
+            }
+
+            return conclusions;
+        }
+
+        function diagnose() {
+            const selectedSymptoms = new Set();
+            symptoms.forEach(symptom => {
+                const checkbox = document.getElementById(symptom);
+                if (checkbox && checkbox.checked) {
+                    selectedSymptoms.add(symptom);
+                }
+            });
+
+            if (selectedSymptoms.size === 0) {
+                alert('Vui lòng chọn ít nhất một triệu chứng!');
+                return;
+            }
+
+            const conclusions = forwardChaining(selectedSymptoms);
+            displayResults(conclusions, selectedSymptoms.size);
+        }
+
+        function displayResults(conclusions, symptomCount) {
+            const resultsDiv = document.getElementById('results');
+            const diagnosisDiv = document.getElementById('diagnosisResults');
+            
+            resultsDiv.classList.add('show');
+
+            if (Object.keys(conclusions).length === 0) {
+                diagnosisDiv.innerHTML = '<div class="diagnosis-item">❌ Không đủ thông tin để chẩn đoán. Vui lòng gặp bác sĩ.</div>';
+                return;
+            }
+
+            const diseases = {};
+            const recommendations = {};
+
+            for (const [key, confidence] of Object.entries(conclusions)) {
+                if (key.includes('nghỉ') || key.includes('đến') || key.includes('cần') || 
+                    key.includes('dùng') || key.includes('tăng')) {
+                    recommendations[key] = confidence;
+                } else {
+                    diseases[key] = confidence;
+                }
+            }
+
+            let html = '';
+
+            if (Object.keys(diseases).length > 0) {
+                html += '<h4 style="color: #43e97b; margin-bottom: 15px;">🏥 Chẩn đoán có thể:</h4>';
+                Object.entries(diseases)
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([disease, confidence]) => {
+                        html += `
+                            <div class="diagnosis-item">
+                                <div>
+                                    <span class="diagnosis-name">${diseaseNames[disease] || disease}</span>
+                                    <span class="confidence">${(confidence * 100).toFixed(0)}%</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+            }
+
+            if (Object.keys(recommendations).length > 0) {
+                html += '<h4 style="color: #43e97b; margin: 20px 0 15px;">💊 Khuyến nghị:</h4>';
+                Object.entries(recommendations)
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([rec, confidence]) => {
+                        html += `
+                            <div class="recommendation">
+                                ${diseaseNames[rec] || rec.replace(/_/g, ' ')}
+                            </div>
+                        `;
+                    });
+            }
+
+            diagnosisDiv.innerHTML = html;
+        }
+
+        function reset() {
+            symptoms.forEach(symptom => {
+                const checkbox = document.getElementById(symptom);
+                if (checkbox) checkbox.checked = false;
+            });
+            document.getElementById('results').classList.remove('show');
+        }
+
+        initSymptoms();
+    </script>
+</body>
+</html>

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cây gia phả - First-Order Logic</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #fa709a;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .tree-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .tree-section h3 {
+            color: #fa709a;
+            margin-bottom: 20px;
+        }
+
+        .tree {
+            font-family: 'Courier New', monospace;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .tree-node {
+            padding: 5px;
+            margin: 2px 0;
+        }
+
+        .male {
+            color: #3498db;
+        }
+
+        .female {
+            color: #e74c3c;
+        }
+
+        .query-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .query-section h3 {
+            color: #fa709a;
+            margin-bottom: 20px;
+        }
+
+        .query-group {
+            margin-bottom: 20px;
+        }
+
+        .query-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(250, 112, 154, 0.4);
+        }
+
+        .results {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 5px solid #fa709a;
+        }
+
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .result-true {
+            border-left: 4px solid #28a745;
+        }
+
+        .result-false {
+            border-left: 4px solid #dc3545;
+        }
+
+        .examples {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .examples h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .examples ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        @media (max-width: 968px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👨‍👩‍👧‍👦 Cây gia phả</h1>
+        <p class="subtitle">First-Order Logic Reasoning System</p>
+
+        <div class="content">
+            <div class="tree-section">
+                <h3>🌳 Cây gia phả mẫu</h3>
+                <div class="tree" id="familyTree"></div>
+            </div>
+
+            <div class="query-section">
+                <h3>🔍 Truy vấn quan hệ</h3>
+                
+                <div class="query-group">
+                    <label>Loại quan hệ:</label>
+                    <select id="relationshipType">
+                        <option value="parent">Cha/Mẹ - Con</option>
+                        <option value="father">Cha - Con</option>
+                        <option value="mother">Mẹ - Con</option>
+                        <option value="sibling">Anh chị em</option>
+                        <option value="grandparent">Ông/Bà - Cháu</option>
+                        <option value="grandfather">Ông - Cháu</option>
+                        <option value="grandmother">Bà - Cháu</option>
+                        <option value="uncle">Chú/Bác - Cháu</option>
+                        <option value="aunt">Cô/Dì - Cháu</option>
+                        <option value="cousin">Anh chị em họ</option>
+                    </select>
+                </div>
+
+                <div class="query-group">
+                    <label>Người thứ nhất:</label>
+                    <select id="person1"></select>
+                </div>
+
+                <div class="query-group">
+                    <label>Người thứ hai:</label>
+                    <select id="person2"></select>
+                </div>
+
+                <button class="btn-primary" onclick="checkRelationship()">Kiểm tra quan hệ</button>
+
+                <div id="queryResults"></div>
+
+                <div class="examples">
+                    <h4>💡 Ví dụ truy vấn:</h4>
+                    <ul>
+                        <li>Bố_An là cha của An?</li>
+                        <li>An và Bình là anh chị em?</li>
+                        <li>Ông_Năm là ông của An?</li>
+                        <li>Chú_Hai là chú của An?</li>
+                        <li>An và Cường là anh em họ?</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const family = {
+            parentOf: [
+                ['Ông_Năm', 'Bố_An'],
+                ['Bà_Năm', 'Bố_An'],
+                ['Ông_Năm', 'Chú_Hai'],
+                ['Bà_Năm', 'Chú_Hai'],
+                ['Ông_Năm', 'Cô_Ba'],
+                ['Bà_Năm', 'Cô_Ba'],
+                ['Bố_An', 'An'],
+                ['Mẹ_An', 'An'],
+                ['Bố_An', 'Bình'],
+                ['Mẹ_An', 'Bình'],
+                ['Chú_Hai', 'Cường'],
+                ['Cô_Ba', 'Dung']
+            ],
+            male: ['Ông_Năm', 'Bố_An', 'Chú_Hai', 'An', 'Cường'],
+            female: ['Bà_Năm', 'Mẹ_An', 'Cô_Ba', 'Bình', 'Dung']
+        };
+
+        function getAllPeople() {
+            const people = new Set();
+            family.parentOf.forEach(([parent, child]) => {
+                people.add(parent);
+                people.add(child);
+            });
+            return Array.from(people);
+        }
+
+        function isParent(parent, child) {
+            return family.parentOf.some(([p, c]) => p === parent && c === child);
+        }
+
+        function isFather(father, child) {
+            return isParent(father, child) && family.male.includes(father);
+        }
+
+        function isMother(mother, child) {
+            return isParent(mother, child) && family.female.includes(mother);
+        }
+
+        function getParents(child) {
+            return family.parentOf
+                .filter(([p, c]) => c === child)
+                .map(([p, c]) => p);
+        }
+
+        function getChildren(parent) {
+            return family.parentOf
+                .filter(([p, c]) => p === parent)
+                .map(([p, c]) => c);
+        }
+
+        function isSibling(person1, person2) {
+            if (person1 === person2) return false;
+            const parents1 = getParents(person1);
+            const parents2 = getParents(person2);
+            return parents1.some(p => parents2.includes(p));
+        }
+
+        function isGrandparent(grandparent, grandchild) {
+            const children = getChildren(grandparent);
+            return children.some(child => isParent(child, grandchild));
+        }
+
+        function isGrandfather(grandfather, grandchild) {
+            return isGrandparent(grandfather, grandchild) && family.male.includes(grandfather);
+        }
+
+        function isGrandmother(grandmother, grandchild) {
+            return isGrandparent(grandmother, grandchild) && family.female.includes(grandmother);
+        }
+
+        function isUncleOrAunt(person, nephewNiece) {
+            const parents = getParents(nephewNiece);
+            return parents.some(parent => isSibling(person, parent));
+        }
+
+        function isUncle(uncle, nephewNiece) {
+            return isUncleOrAunt(uncle, nephewNiece) && family.male.includes(uncle);
+        }
+
+        function isAunt(aunt, nephewNiece) {
+            return isUncleOrAunt(aunt, nephewNiece) && family.female.includes(aunt);
+        }
+
+        function isCousin(person1, person2) {
+            const parents1 = getParents(person1);
+            const parents2 = getParents(person2);
+            return parents1.some(p1 => parents2.some(p2 => isSibling(p1, p2)));
+        }
+
+        function displayFamilyTree() {
+            const tree = document.getElementById('familyTree');
+            let html = '';
+
+            function displayPerson(person, level) {
+                const indent = '  '.repeat(level);
+                const gender = family.male.includes(person) ? '♂' : '♀';
+                const genderClass = family.male.includes(person) ? 'male' : 'female';
+                html += `<div class="tree-node">${indent}${person} <span class="${genderClass}">${gender}</span></div>`;
+                
+                const children = getChildren(person);
+                children.forEach(child => displayPerson(child, level + 1));
+            }
+
+            const roots = getAllPeople().filter(p => getParents(p).length === 0);
+            roots.forEach(root => displayPerson(root, 0));
+            
+            tree.innerHTML = html;
+        }
+
+        function initSelects() {
+            const people = getAllPeople().sort();
+            const person1 = document.getElementById('person1');
+            const person2 = document.getElementById('person2');
+
+            people.forEach(person => {
+                person1.innerHTML += `<option value="${person}">${person}</option>`;
+                person2.innerHTML += `<option value="${person}">${person}</option>`;
+            });
+        }
+
+        function checkRelationship() {
+            const type = document.getElementById('relationshipType').value;
+            const person1 = document.getElementById('person1').value;
+            const person2 = document.getElementById('person2').value;
+
+            let result = false;
+            let message = '';
+
+            switch(type) {
+                case 'parent':
+                    result = isParent(person1, person2);
+                    message = `${person1} ${result ? 'là' : 'không phải là'} cha/mẹ của ${person2}`;
+                    break;
+                case 'father':
+                    result = isFather(person1, person2);
+                    message = `${person1} ${result ? 'là' : 'không phải là'} cha của ${person2}`;
+                    break;
+                case 'mother':
+                    result = isMother(person1, person2);
+                    message = `${person1} ${result ? 'là' : 'không phải là'} mẹ của ${person2}`;
+                    break;
+                case 'sibling':
+                    result = isSibling(person1, person2);
+                    message = `${person1} và ${person2} ${result ? 'là' : 'không phải là'} anh chị em`;
+                    break;
+                case 'grandparent':
+                    result = isGrandparent(person1, person2);
+                    message = `${person1} ${result ? 'là' : 'không phải là'} ông/bà của ${person2}`;
+                    break;
+                case 'grandfather':
+                    result = isGrandfather(person1, person2);
+                    message = `${person1} ${result ? 'là' : 'không phải là'} ông của ${person2}`;
+                    break;
+                case 'grandmother':
+                    result = isGrandmother(person1, person2);
+                    message = `${person1} ${result ? 'là' : 'không phải là'} bà của ${person2}`;
+                    break;
+                case 'uncle':
+                    result = isUncle(person1, person2);
+                    message = `${person1} ${result ? 'là' : 'không phải là'} chú/bác của ${person2}`;
+                    break;
+                case 'aunt':
+                    result = isAunt(person1, person2);
+                    message = `${person1} ${result ? 'là' : 'không phải là'} cô/dì của ${person2}`;
+                    break;
+                case 'cousin':
+                    result = isCousin(person1, person2);
+                    message = `${person1} và ${person2} ${result ? 'là' : 'không phải là'} anh chị em họ`;
+                    break;
+            }
+
+            const resultsDiv = document.getElementById('queryResults');
+            resultsDiv.innerHTML = `
+                <div class="results">
+                    <div class="result-item ${result ? 'result-true' : 'result-false'}">
+                        ${result ? '✓' : '✗'} ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        displayFamilyTree();
+        initSelects();
+    </script>
+</body>
+</html>

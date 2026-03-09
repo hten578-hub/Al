@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe - AI Minimax</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 30px auto;
+            max-width: 350px;
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .cell:hover:not(.taken) {
+            background: #f8f9fa;
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .cell.taken {
+            cursor: not-allowed;
+        }
+
+        .cell.x {
+            color: #e74c3c;
+        }
+
+        .cell.o {
+            color: #3498db;
+        }
+
+        .cell.winning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn-secondary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .info-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 1.1rem;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .info-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .message.win {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .message.lose {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .message.draw {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+
+        .difficulty {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .difficulty button {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        .difficulty button.active {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Tic Tac Toe</h1>
+        <p class="subtitle">Chơi với AI Minimax - Bạn là X, AI là O</p>
+
+        <div class="game-board" id="gameBoard"></div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="resetGame()">🔄 Chơi lại</button>
+            <button class="btn-secondary" onclick="toggleFirstPlayer()">🔀 Đổi lượt đi trước</button>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <span class="info-label">Lượt hiện tại:</span>
+                <span class="info-value" id="currentTurn">Bạn (X)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Người đi trước:</span>
+                <span class="info-value" id="firstPlayer">Bạn</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Trạng thái:</span>
+                <span class="info-value" id="gameStatus">Đang chơi</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number" id="winCount">0</div>
+                <div class="stat-label">Bạn thắng</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="drawCount">0</div>
+                <div class="stat-label">Hòa</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="loseCount">0</div>
+                <div class="stat-label">AI thắng</div>
+            </div>
+        </div>
+
+        <div id="messageBox"></div>
+    </div>
+
+    <script>
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let playerFirst = true;
+        let stats = { wins: 0, draws: 0, losses: 0 };
+
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 4, 8], [2, 4, 6]             // Diagonals
+        ];
+
+        function initBoard() {
+            const boardElement = document.getElementById('gameBoard');
+            boardElement.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('button');
+                cell.className = 'cell';
+                cell.onclick = () => handleCellClick(i);
+                cell.id = `cell-${i}`;
+                boardElement.appendChild(cell);
+            }
+            
+            updateBoard();
+            
+            if (!playerFirst && gameActive) {
+                setTimeout(() => aiMove(), 500);
+            }
+        }
+
+        function handleCellClick(index) {
+            if (board[index] !== '' || !gameActive || currentPlayer !== 'X') {
+                return;
+            }
+            
+            makeMove(index, 'X');
+            
+            if (gameActive) {
+                setTimeout(() => aiMove(), 500);
+            }
+        }
+
+        function makeMove(index, player) {
+            board[index] = player;
+            updateBoard();
+            checkResult();
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateInfo();
+        }
+
+        function aiMove() {
+            if (!gameActive) return;
+            
+            const bestMove = getBestMove();
+            makeMove(bestMove, 'O');
+        }
+
+        function getBestMove() {
+            let bestScore = -Infinity;
+            let bestMove = 0;
+            
+            for (let i = 0; i < 9; i++) {
+                if (board[i] === '') {
+                    board[i] = 'O';
+                    let score = minimax(board, 0, false);
+                    board[i] = '';
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = i;
+                    }
+                }
+            }
+            
+            return bestMove;
+        }
+
+        function minimax(board, depth, isMaximizing) {
+            const result = checkWinner();
+            
+            if (result === 'O') return 10 - depth;
+            if (result === 'X') return depth - 10;
+            if (result === 'draw') return 0;
+            
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'O';
+                        let score = minimax(board, depth + 1, false);
+                        board[i] = '';
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'X';
+                        let score = minimax(board, depth + 1, true);
+                        board[i] = '';
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        function checkWinner() {
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return board[a];
+                }
+            }
+            
+            if (board.every(cell => cell !== '')) {
+                return 'draw';
+            }
+            
+            return null;
+        }
+
+        function checkResult() {
+            const result = checkWinner();
+            
+            if (result) {
+                gameActive = false;
+                
+                if (result === 'X') {
+                    showMessage('win', '🎉 Chúc mừng! Bạn đã thắng!');
+                    stats.wins++;
+                    highlightWinningCells();
+                } else if (result === 'O') {
+                    showMessage('lose', '🤖 AI thắng! Thử lại nhé!');
+                    stats.losses++;
+                    highlightWinningCells();
+                } else {
+                    showMessage('draw', '🤝 Hòa! Trận đấu cân bằng!');
+                    stats.draws++;
+                }
+                
+                updateStats();
+                document.getElementById('gameStatus').textContent = 'Kết thúc';
+            }
+        }
+
+        function highlightWinningCells() {
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    document.getElementById(`cell-${a}`).classList.add('winning');
+                    document.getElementById(`cell-${b}`).classList.add('winning');
+                    document.getElementById(`cell-${c}`).classList.add('winning');
+                    break;
+                }
+            }
+        }
+
+        function updateBoard() {
+            for (let i = 0; i < 9; i++) {
+                const cell = document.getElementById(`cell-${i}`);
+                cell.textContent = board[i];
+                cell.className = 'cell';
+                
+                if (board[i] !== '') {
+                    cell.classList.add('taken');
+                    cell.classList.add(board[i].toLowerCase());
+                }
+            }
+        }
+
+        function updateInfo() {
+            const turnText = currentPlayer === 'X' ? 'Bạn (X)' : 'AI (O)';
+            document.getElementById('currentTurn').textContent = turnText;
+        }
+
+        function updateStats() {
+            document.getElementById('winCount').textContent = stats.wins;
+            document.getElementById('drawCount').textContent = stats.draws;
+            document.getElementById('loseCount').textContent = stats.losses;
+        }
+
+        function resetGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = playerFirst ? 'X' : 'O';
+            gameActive = true;
+            document.getElementById('messageBox').innerHTML = '';
+            document.getElementById('gameStatus').textContent = 'Đang chơi';
+            initBoard();
+        }
+
+        function toggleFirstPlayer() {
+            playerFirst = !playerFirst;
+            document.getElementById('firstPlayer').textContent = playerFirst ? 'Bạn' : 'AI';
+            resetGame();
+        }
+
+        function showMessage(type, text) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+
+        // Initialize
+        initBoard();
+        updateInfo();
+        updateStats();
+    </script>
+</body>
+</html>

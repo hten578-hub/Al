@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Solver - BFS, DFS, A*</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #f5576c;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .canvas-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            border: 2px solid #f5576c;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .control-group h3 {
+            color: #f5576c;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .algorithm-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .algorithm-buttons button {
+            margin: 0;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #f5576c;
+        }
+
+        .stat-label {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #f5576c;
+            font-weight: bold;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+
+        @media (max-width: 968px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧩 Giải mê cung</h1>
+        <p class="subtitle">BFS, DFS và A* Algorithm</p>
+
+        <div class="content">
+            <div class="canvas-container">
+                <canvas id="canvas" width="500" height="500"></canvas>
+                <p style="margin-top: 10px; color: #666;">Click để vẽ tường, Shift+Click để đặt điểm bắt đầu/kết thúc</p>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <h3>⚙️ Cài đặt mê cung</h3>
+                    <div class="input-group">
+                        <label>Kích thước lưới:</label>
+                        <input type="number" id="gridSize" min="10" max="50" value="20">
+                    </div>
+                    <button class="btn-success" onclick="generateMaze()">🎲 Tạo mê cung ngẫu nhiên</button>
+                    <button class="btn-secondary" onclick="clearMaze()">🗑️ Xóa mê cung</button>
+                </div>
+
+                <div class="control-group">
+                    <h3>🎮 Chọn thuật toán</h3>
+                    <div class="algorithm-buttons">
+                        <button class="btn-primary" onclick="solveMaze('bfs')">BFS</button>
+                        <button class="btn-primary" onclick="solveMaze('dfs')">DFS</button>
+                        <button class="btn-primary" onclick="solveMaze('astar')">A*</button>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <h3 style="color: #f5576c; margin-bottom: 15px;">📊 Kết quả</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Thuật toán:</span>
+                        <span class="stat-value" id="algorithm">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Độ dài đường đi:</span>
+                        <span class="stat-value" id="pathLength">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Số ô đã duyệt:</span>
+                        <span class="stat-value" id="visited">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Thời gian:</span>
+                        <span class="stat-value" id="time">-</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>🎨 Chú thích</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #2ecc71;"></div>
+                            <span>Bắt đầu</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #e74c3c;"></div>
+                            <span>Kết thúc</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #34495e;"></div>
+                            <span>Tường</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #3498db;"></div>
+                            <span>Đường đi</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f39c12;"></div>
+                            <span>Đã duyệt</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: white;"></div>
+                            <span>Trống</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let gridSize = 20;
+        let cellSize;
+        let maze = [];
+        let start = {x: 0, y: 0};
+        let end = null;
+        let isDrawing = false;
+        let settingStart = false;
+
+        function initMaze() {
+            gridSize = parseInt(document.getElementById('gridSize').value);
+            cellSize = canvas.width / gridSize;
+            maze = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+            end = {x: gridSize - 1, y: gridSize - 1};
+            draw();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const x = j * cellSize;
+                    const y = i * cellSize;
+
+                    if (i === start.x && j === start.y) {
+                        ctx.fillStyle = '#2ecc71';
+                    } else if (end && i === end.x && j === end.y) {
+                        ctx.fillStyle = '#e74c3c';
+                    } else if (maze[i][j] === 1) {
+                        ctx.fillStyle = '#34495e';
+                    } else if (maze[i][j] === 2) {
+                        ctx.fillStyle = '#3498db';
+                    } else if (maze[i][j] === 3) {
+                        ctx.fillStyle = '#f39c12';
+                    } else {
+                        ctx.fillStyle = 'white';
+                    }
+
+                    ctx.fillRect(x, y, cellSize, cellSize);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.strokeRect(x, y, cellSize, cellSize);
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            handleClick(e);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) handleClick(e);
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        function handleClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientY - rect.top) / cellSize);
+            const y = Math.floor((e.clientX - rect.left) / cellSize);
+
+            if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+                if (e.shiftKey) {
+                    if (!settingStart) {
+                        start = {x, y};
+                        settingStart = true;
+                    } else {
+                        end = {x, y};
+                        settingStart = false;
+                    }
+                } else {
+                    if ((x !== start.x || y !== start.y) && (!end || x !== end.x || y !== end.y)) {
+                        maze[x][y] = maze[x][y] === 1 ? 0 : 1;
+                    }
+                }
+                draw();
+            }
+        }
+
+        function generateMaze() {
+            initMaze();
+            
+            // Tạo mê cung với thuật toán đơn giản đảm bảo có đường đi
+            // Bước 1: Tạo tường ngẫu nhiên nhưng ít hơn
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if ((i !== start.x || j !== start.y) && (i !== end.x || j !== end.y)) {
+                        maze[i][j] = Math.random() < 0.25 ? 1 : 0; // Giảm từ 0.3 xuống 0.25
+                    }
+                }
+            }
+            
+            // Bước 2: Đảm bảo có đường đi bằng cách tạo một đường thẳng đơn giản
+            // Nếu không có đường đi, tạo đường đi cơ bản
+            if (!hasPath()) {
+                createSimplePath();
+            }
+            
+            draw();
+        }
+        
+        function hasPath() {
+            // Kiểm tra nhanh xem có đường đi không bằng BFS đơn giản
+            const visited = new Set([`${start.x},${start.y}`]);
+            const queue = [[start.x, start.y]];
+            const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+            
+            while (queue.length > 0) {
+                const [x, y] = queue.shift();
+                
+                if (x === end.x && y === end.y) {
+                    return true;
+                }
+                
+                for (const [dx, dy] of directions) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    const key = `${nx},${ny}`;
+                    
+                    if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize &&
+                        maze[nx][ny] !== 1 && !visited.has(key)) {
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        function createSimplePath() {
+            // Tạo đường đi đơn giản từ start đến end
+            let x = start.x;
+            let y = start.y;
+            
+            // Di chuyển theo hàng trước
+            while (x !== end.x) {
+                maze[x][y] = 0;
+                x += (end.x > x) ? 1 : -1;
+            }
+            
+            // Sau đó di chuyển theo cột
+            while (y !== end.y) {
+                maze[x][y] = 0;
+                y += (end.y > y) ? 1 : -1;
+            }
+            
+            maze[end.x][end.y] = 0;
+        }
+
+        function clearMaze() {
+            initMaze();
+        }
+
+        function heuristic(pos, goal) {
+            return Math.abs(pos.x - goal.x) + Math.abs(pos.y - goal.y);
+        }
+
+        async function solveMaze(algorithm) {
+            if (!end) {
+                alert('Vui lòng đặt điểm kết thúc (Shift+Click)');
+                return;
+            }
+
+            // Reset maze
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (maze[i][j] === 2 || maze[i][j] === 3) {
+                        maze[i][j] = 0;
+                    }
+                }
+            }
+
+            const startTime = performance.now();
+            let path = null;
+            let visitedCount = 0;
+
+            if (algorithm === 'bfs') {
+                path = await bfs();
+            } else if (algorithm === 'dfs') {
+                path = await dfs();
+            } else if (algorithm === 'astar') {
+                path = await aStar();
+            }
+
+            const endTime = performance.now();
+
+            // Count visited cells
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (maze[i][j] === 3) visitedCount++;
+                }
+            }
+
+            // Update stats
+            document.getElementById('algorithm').textContent = algorithm.toUpperCase();
+            document.getElementById('pathLength').textContent = path ? path.length : 'Không tìm thấy';
+            document.getElementById('visited').textContent = visitedCount;
+            document.getElementById('time').textContent = (endTime - startTime).toFixed(2) + ' ms';
+
+            if (path) {
+                for (const pos of path) {
+                    if ((pos.x !== start.x || pos.y !== start.y) && (pos.x !== end.x || pos.y !== end.y)) {
+                        maze[pos.x][pos.y] = 2;
+                    }
+                }
+            }
+
+            draw();
+        }
+
+        async function bfs() {
+            const queue = [[start]];
+            const visited = new Set([`${start.x},${start.y}`]);
+            const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const current = path[path.length - 1];
+
+                if (current.x === end.x && current.y === end.y) {
+                    return path;
+                }
+
+                for (const [dx, dy] of directions) {
+                    const nx = current.x + dx;
+                    const ny = current.y + dy;
+                    const key = `${nx},${ny}`;
+
+                    if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize &&
+                        maze[nx][ny] !== 1 && !visited.has(key)) {
+                        visited.add(key);
+                        if ((nx !== start.x || ny !== start.y) && (nx !== end.x || ny !== end.y)) {
+                            maze[nx][ny] = 3;
+                        }
+                        queue.push([...path, {x: nx, y: ny}]);
+                    }
+                }
+
+                if (queue.length % 10 === 0) {
+                    draw();
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+            }
+
+            return null;
+        }
+
+        async function dfs() {
+            const stack = [[start]];
+            const visited = new Set([`${start.x},${start.y}`]);
+            const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+
+            while (stack.length > 0) {
+                const path = stack.pop();
+                const current = path[path.length - 1];
+
+                if (current.x === end.x && current.y === end.y) {
+                    return path;
+                }
+
+                for (const [dx, dy] of directions) {
+                    const nx = current.x + dx;
+                    const ny = current.y + dy;
+                    const key = `${nx},${ny}`;
+
+                    if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize &&
+                        maze[nx][ny] !== 1 && !visited.has(key)) {
+                        visited.add(key);
+                        if ((nx !== start.x || ny !== start.y) && (nx !== end.x || ny !== end.y)) {
+                            maze[nx][ny] = 3;
+                        }
+                        stack.push([...path, {x: nx, y: ny}]);
+                    }
+                }
+
+                if (stack.length % 10 === 0) {
+                    draw();
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+            }
+
+            return null;
+        }
+
+        async function aStar() {
+            const openSet = [{pos: start, path: [start], g: 0, f: heuristic(start, end)}];
+            const visited = new Set();
+            const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+
+            while (openSet.length > 0) {
+                openSet.sort((a, b) => a.f - b.f);
+                const current = openSet.shift();
+                const key = `${current.pos.x},${current.pos.y}`;
+
+                if (visited.has(key)) continue;
+                visited.add(key);
+
+                if (current.pos.x === end.x && current.pos.y === end.y) {
+                    return current.path;
+                }
+
+                for (const [dx, dy] of directions) {
+                    const nx = current.pos.x + dx;
+                    const ny = current.pos.y + dy;
+                    const nkey = `${nx},${ny}`;
+
+                    if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize &&
+                        maze[nx][ny] !== 1 && !visited.has(nkey)) {
+                        const newPos = {x: nx, y: ny};
+                        const newG = current.g + 1;
+                        const newF = newG + heuristic(newPos, end);
+                        
+                        if ((nx !== start.x || ny !== start.y) && (nx !== end.x || ny !== end.y)) {
+                            maze[nx][ny] = 3;
+                        }
+                        
+                        openSet.push({
+                            pos: newPos,
+                            path: [...current.path, newPos],
+                            g: newG,
+                            f: newF
+                        });
+                    }
+                }
+
+                if (openSet.length % 10 === 0) {
+                    draw();
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+            }
+
+            return null;
+        }
+
+        // Initialize
+        initMaze();
+    </script>
+</body>
+</html>
